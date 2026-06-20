@@ -249,7 +249,7 @@ runner_wrapper/localtest.sh smoke
 Manual run:
 
 ```bash
-docker run --rm -p 8080:8080 \
+docker run --rm -p 58090:58090 \
   -e RUNNER_NAME=my-model \
   -e RUNNER_TYPE=generator \
   -e RUNNER_VERSION=0.1.0 \
@@ -260,11 +260,11 @@ docker run --rm -p 8080:8080 \
 Submit a smoke request and poll status:
 
 ```bash
-curl -sS -X POST http://127.0.0.1:8080/run-job \
+curl -sS -X POST http://127.0.0.1:58090/run-job \
   -H 'Content-Type: application/json' \
   --data @runner_wrapper/examples/generator_job_request.json
 
-curl -sS http://127.0.0.1:8080/status
+curl -sS http://127.0.0.1:58090/status
 ```
 
 Install the image-build workflow:

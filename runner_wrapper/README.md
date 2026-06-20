@@ -39,10 +39,12 @@ Create these in the target model repo:
 
 ## Upstream Subtree
 
-Add the upstream remote once in the target model repo:
+Add the upstream once in the target model repo:
 
 ```bash
 git remote add deploybench https://github.com/CashewHero/SceneGenDeployBench.git
+git fetch deploybench subtree/runner_wrapper
+git subtree add --prefix=runner_wrapper deploybench subtree/runner_wrapper --squash
 ```
 
 Pull later upstream updates into `runner_wrapper/`:
@@ -177,7 +179,7 @@ TEST_RUNNER_MIN_SECONDS=0 TEST_RUNNER_MAX_SECONDS=0 runner_wrapper/localtest.sh 
 Manual run:
 
 ```bash
-docker run --rm -p 8080:8080 \
+docker run --rm -p 58090:58090 \
   -e RUNNER_NAME=my-generator \
   -e RUNNER_TYPE=generator \
   -e RUNNER_VERSION=0.1.0 \
@@ -228,7 +230,7 @@ branch/tag pushes, and builds pull requests without pushing.
 
 ## Environment
 
-- `RUNNER_PORT=8080`
+- `RUNNER_PORT=58090`
 - `RUNNER_NAME`
 - `RUNNER_TYPE`
 - `RUNNER_VERSION`

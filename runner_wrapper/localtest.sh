@@ -13,7 +13,7 @@ repo_name="$(basename "${REPO_ROOT}" | safe_name)"
 
 IMAGE="${RUNNER_IMAGE:-${repo_name}-runner:local}"
 CONTAINER="${RUNNER_CONTAINER:-${repo_name}-runner-localtest}"
-HOST_PORT="${RUNNER_HOST_PORT:-8080}"
+HOST_PORT="${RUNNER_HOST_PORT:-58090}"
 DATA_DIR="${RUNNER_DATA_DIR:-${REPO_ROOT}/data}"
 RUNNER_NAME="${RUNNER_NAME:-${repo_name}-runner}"
 RUNNER_TYPE="${RUNNER_TYPE:-generator}"
@@ -79,7 +79,7 @@ run_container() {
   docker rm -f "${CONTAINER}" >/dev/null 2>&1 || true
 
   local env_args=(
-    -e "RUNNER_PORT=8080"
+    -e "RUNNER_PORT=58090"
     -e "RUNNER_NAME=${RUNNER_NAME}"
     -e "RUNNER_TYPE=${RUNNER_TYPE}"
     -e "RUNNER_VERSION=${RUNNER_VERSION}"
@@ -98,7 +98,7 @@ run_container() {
 
   docker run -d \
     --name "${CONTAINER}" \
-    -p "${HOST_PORT}:8080" \
+    -p "${HOST_PORT}:58090" \
     "${env_args[@]}" \
     -v "${DATA_DIR}:/data" \
     "${IMAGE}" >/dev/null

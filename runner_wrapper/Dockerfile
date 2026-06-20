@@ -28,11 +28,11 @@ RUN if [ "$INSTALL_EDITABLE" = "1" ] && { [ -f pyproject.toml ] || [ -f setup.py
       pip install --no-cache-dir -e .; \
     fi
 
-EXPOSE 8080
+EXPOSE 58090
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV RUNNER_PORT=8080
+ENV RUNNER_PORT=58090
 ENV RUNNER_NAME=test-runner
 ENV RUNNER_TYPE=generator
 ENV RUNNER_VERSION=0.1.0

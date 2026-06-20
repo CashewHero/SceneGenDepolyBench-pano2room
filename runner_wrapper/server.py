@@ -63,7 +63,7 @@ class RunnerSettings:
     @classmethod
     def from_env(cls) -> "RunnerSettings":
         return cls(
-            port=int(os.getenv("RUNNER_PORT", "8080")),
+            port=int(os.getenv("RUNNER_PORT", "58090")),
             runner_name=os.getenv("RUNNER_NAME", "test-runner"),
             runner_type=os.getenv("RUNNER_TYPE", "generator"),
             runner_version=os.getenv("RUNNER_VERSION", "0.1.0"),
