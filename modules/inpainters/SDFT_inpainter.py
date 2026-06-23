@@ -10,10 +10,10 @@ class SDFTInpainter(Inpainter):
     def __init__(self, subset_name=None):
         super().__init__()
 
-        SD_path = "stabilityai/stable-diffusion-2-inpainting"
+        SD_path = os.getenv("PANO2ROOM_SD_MODEL_PATH", "stabilityai/stable-diffusion-2-inpainting")
         pipe = StableDiffusionInpaintPipeline.from_pretrained(SD_path, torch_dtype=torch.float16, variant="fp16").to("cuda")
 
-        SDFT_path = f"output/SDFT_weights"
+        SDFT_path = os.getenv("PANO2ROOM_SDFT_WEIGHTS_DIR", "output/SDFT_weights")
         if os.path.exists(SDFT_path):
             pipe.load_lora_weights(SDFT_path)
         self.inpaint_pipe = pipe

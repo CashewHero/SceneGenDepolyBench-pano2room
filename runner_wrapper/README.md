@@ -225,8 +225,7 @@ cp runner_wrapper/examples/github-workflows/build-runner-image.yaml \
   .github/workflows/runner-image.yaml
 ```
 
-It builds from repo root with `runner_wrapper/Dockerfile`, pushes to GHCR on
-branch/tag pushes, and builds pull requests without pushing.
+The workflow derives the image name from the repository name. The target repo should be named `SceneGenDepolyBench-<model>`. It builds from repo root with `runner_wrapper/Dockerfile`, pushes to GHCR on branch/tag pushes, and builds pull requests without pushing.
 
 ## Environment
 

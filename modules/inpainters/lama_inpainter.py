@@ -1,6 +1,7 @@
 import torch
 
 import os
+from pathlib import Path
 from .inpainter import Inpainter
 from .lama.saicinpainting.training.data.datasets import make_default_val_dataset
 from .lama.saicinpainting.training.trainers import load_checkpoint
@@ -12,14 +13,16 @@ class LamaInpainter(Inpainter):
     def __init__(self):
         super().__init__()
         predict_config = OmegaConf.load('./modules/inpainters/lama/predict_config.yaml')
-        train_config = OmegaConf.load('./checkpoints/big-lama-config.yaml')
+        checkpoint_dir = Path(os.getenv("PANO2ROOM_CHECKPOINT_DIR", "checkpoints"))
+        train_config_path = Path(os.getenv("PANO2ROOM_LAMA_CONFIG_PATH", str(checkpoint_dir / "big-lama-config.yaml")))
+        train_config = OmegaConf.load(train_config_path)
 
         train_config.training_model.predict_only = True
         train_config.visualizer.kind = 'noop'
 
         out_ext = predict_config.get('out_ext', '.png')
 
-        checkpoint_path = './checkpoints/big-lama.ckpt'
+        checkpoint_path = os.getenv("PANO2ROOM_LAMA_CKPT_PATH", str(checkpoint_dir / "big-lama.ckpt"))
         self.model = load_checkpoint(train_config, checkpoint_path, strict=False, map_location='cpu')
         self.model.freeze()
 

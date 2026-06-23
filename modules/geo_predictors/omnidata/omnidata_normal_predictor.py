@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+
 import torch
 import torch.nn.functional as F
 from torchvision import transforms
@@ -15,7 +18,8 @@ class OmnidataNormalPredictor(GeoPredictor):
     def __init__(self):
         super().__init__()
         self.img_size = 384
-        ckpt_path = './checkpoints/omnidata_dpt_normal_v2.ckpt'
+        checkpoint_dir = Path(os.getenv("PANO2ROOM_CHECKPOINT_DIR", "checkpoints"))
+        ckpt_path = os.getenv("PANO2ROOM_OMNIDATA_NORMAL_CKPT_PATH", str(checkpoint_dir / "omnidata_dpt_normal_v2.ckpt"))
         self.model = DPTDepthModel(backbone='vitb_rn50_384', num_channels=3)
         self.model.to(torch.device('cpu'))
         checkpoint = torch.load(ckpt_path, map_location=torch.device('cpu'))

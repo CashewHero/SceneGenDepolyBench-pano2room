@@ -11,14 +11,15 @@ safe_name() {
 
 repo_name="$(basename "${REPO_ROOT}" | safe_name)"
 
-IMAGE="${RUNNER_IMAGE:-${repo_name}-runner:local}"
-CONTAINER="${RUNNER_CONTAINER:-${repo_name}-runner-localtest}"
+IMAGE="${RUNNER_IMAGE:-scenegendeploybench-pano2room:local}"
+CONTAINER="${RUNNER_CONTAINER:-pano2room-runner-localtest}"
 HOST_PORT="${RUNNER_HOST_PORT:-58090}"
 DATA_DIR="${RUNNER_DATA_DIR:-${REPO_ROOT}/data}"
-RUNNER_NAME="${RUNNER_NAME:-${repo_name}-runner}"
+RUNNER_NAME="${RUNNER_NAME:-pano2room}"
 RUNNER_TYPE="${RUNNER_TYPE:-generator}"
 RUNNER_VERSION="${RUNNER_VERSION:-0.1.0}"
 RUNNER_ADAPTER="${RUNNER_ADAPTER:-runner_wrapper.adapter:run_job}"
+RUNNER_WEIGHTS_DIR="${RUNNER_WEIGHTS_DIR:-}"
 REQUEST_FILE="${RUNNER_REQUEST_FILE:-${SCRIPT_DIR}/examples/${RUNNER_TYPE}_job_request.json}"
 
 usage() {
@@ -41,9 +42,10 @@ Environment:
   RUNNER_ADAPTER=${RUNNER_ADAPTER}
   RUNNER_REQUEST_FILE=${REQUEST_FILE}
   RUNNER_DATA_DIR=${DATA_DIR}
+  RUNNER_WEIGHTS_DIR=${RUNNER_WEIGHTS_DIR}
 
-For the bundled test adapter, set TEST_RUNNER_MIN_SECONDS=0 and
-TEST_RUNNER_MAX_SECONDS=0 when you want a fast smoke run.
+Set RUNNER_WEIGHTS_DIR to the host directory containing the mounted
+Pano2Room weights before running a full smoke test.
 EOF
 }
 
@@ -63,14 +65,16 @@ build_image() {
 prepare_data() {
   mkdir -p \
     "${DATA_DIR}/datasets/smoke" \
-    "${DATA_DIR}/output/my-generator@0.1.0/smoke-dataset/sample-1/output"
+    "${DATA_DIR}/output/pano2room@0.1.0/smoke-dataset/sample-1"
 
   if [[ ! -f "${DATA_DIR}/datasets/smoke/image.png" ]]; then
-    printf 'smoke input\n' > "${DATA_DIR}/datasets/smoke/image.png"
-  fi
-
-  if [[ ! -f "${DATA_DIR}/output/my-generator@0.1.0/smoke-dataset/sample-1/output/scene.glb" ]]; then
-    printf 'smoke generated scene\n' > "${DATA_DIR}/output/my-generator@0.1.0/smoke-dataset/sample-1/output/scene.glb"
+    if [[ -f "${REPO_ROOT}/input/input_panorama.png" ]]; then
+      cp "${REPO_ROOT}/input/input_panorama.png" "${DATA_DIR}/datasets/smoke/image.png"
+    elif [[ -f "${REPO_ROOT}/demo/input_panorama.png" ]]; then
+      cp "${REPO_ROOT}/demo/input_panorama.png" "${DATA_DIR}/datasets/smoke/image.png"
+    else
+      printf 'smoke input\n' > "${DATA_DIR}/datasets/smoke/image.png"
+    fi
   fi
 }
 
@@ -86,21 +90,34 @@ run_container() {
     -e "RUNNER_ADAPTER=${RUNNER_ADAPTER}"
   )
 
-  if [[ -n "${TEST_RUNNER_MIN_SECONDS:-}" ]]; then
-    env_args+=(-e "TEST_RUNNER_MIN_SECONDS=${TEST_RUNNER_MIN_SECONDS}")
-  fi
-  if [[ -n "${TEST_RUNNER_MAX_SECONDS:-}" ]]; then
-    env_args+=(-e "TEST_RUNNER_MAX_SECONDS=${TEST_RUNNER_MAX_SECONDS}")
-  fi
   if [[ -n "${RUNNER_LOG_LEVEL:-}" ]]; then
     env_args+=(-e "RUNNER_LOG_LEVEL=${RUNNER_LOG_LEVEL}")
+  fi
+  for env_name in \
+    PANO2ROOM_CHECKPOINT_DIR \
+    PANO2ROOM_LAMA_CONFIG_PATH \
+    PANO2ROOM_LAMA_CKPT_PATH \
+    PANO2ROOM_OMNIDATA_DEPTH_CKPT_PATH \
+    PANO2ROOM_OMNIDATA_NORMAL_CKPT_PATH \
+    PANO2ROOM_SD_MODEL_PATH \
+    PANO2ROOM_AUTO_DOWNLOAD_WEIGHTS \
+    PANO2ROOM_SDFT_WEIGHTS_DIR \
+    PANO2ROOM_CAMERA_TRAJECTORY_DIR; do
+    if [[ -n "${!env_name:-}" ]]; then
+      env_args+=(-e "${env_name}=${!env_name}")
+    fi
+  done
+
+  local volume_args=(-v "${DATA_DIR}:/data")
+  if [[ -n "${RUNNER_WEIGHTS_DIR}" ]]; then
+    volume_args+=(-v "${RUNNER_WEIGHTS_DIR}:/models/pano2room/checkpoints:ro")
   fi
 
   docker run -d \
     --name "${CONTAINER}" \
     -p "${HOST_PORT}:58090" \
     "${env_args[@]}" \
-    -v "${DATA_DIR}:/data" \
+    "${volume_args[@]}" \
     "${IMAGE}" >/dev/null
 
   wait_ready

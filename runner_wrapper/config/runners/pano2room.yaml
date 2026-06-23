@@ -1,0 +1,30 @@
+catalog_version: 1
+
+runners:
+  - runner: pano2room
+    version: 0.1.0
+    latest: true
+    display_name: Pano2Room
+    kind: generator
+    contract_version: 1
+    inputs:
+      required:
+        - image
+      optional: []
+    scheduling:
+      max_batch_size: 1
+      max_attempts: 1
+    launcher:
+      driver: docker
+      compat_version: 1
+      image: scenegendeploybench-pano2room:0.1.0
+      endpoint:
+        port: 58090
+      env:
+        PANO2ROOM_CHECKPOINT_DIR: /models/pano2room/checkpoints
+        PANO2ROOM_LAMA_CONFIG_PATH: /models/pano2room/checkpoints/big-lama-config.yaml
+        PANO2ROOM_LAMA_CKPT_PATH: /models/pano2room/checkpoints/big-lama.ckpt
+        PANO2ROOM_OMNIDATA_DEPTH_CKPT_PATH: /models/pano2room/checkpoints/omnidata_dpt_depth_v2.ckpt
+        PANO2ROOM_OMNIDATA_NORMAL_CKPT_PATH: /models/pano2room/checkpoints/omnidata_dpt_normal_v2.ckpt
+        PANO2ROOM_AUTO_DOWNLOAD_WEIGHTS: "1"
+        PANO2ROOM_CAMERA_TRAJECTORY_DIR: input/Camera_Trajectory

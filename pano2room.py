@@ -40,10 +40,19 @@ from random import randint
 
 @torch.no_grad()
 class Pano2RoomPipeline(torch.nn.Module):
-    def __init__(self, image_path=None,attempt_idx=""):
+    def __init__(
+        self,
+        image_path=None,
+        attempt_idx="",
+        save_path=None,
+        camera_trajectory_dir=None,
+        render_outputs=True,
+    ):
         super().__init__()
         # renderer setting
         self.image_path = image_path
+        self.camera_trajectory_dir = camera_trajectory_dir or os.getenv("PANO2ROOM_CAMERA_TRAJECTORY_DIR", "input/Camera_Trajectory")
+        self.render_outputs = render_outputs
         self.blur_radius = 0
         self.faces_per_pixel = 8
         self.fov = 90
@@ -71,7 +80,7 @@ class Pano2RoomPipeline(torch.nn.Module):
             timestamp = str(int(time.time()))[-8:]
             self.setting += f"-{timestamp}"
         self.img_name = Path(self.image_path).stem
-        self.save_path = f'output/{self.img_name}_pano2Room_results'
+        self.save_path = str(save_path or f'output/{self.img_name}_pano2Room_results')
         self.save_details = False
 
         if not os.path.exists(self.save_path):
@@ -350,7 +359,7 @@ class Pano2RoomPipeline(torch.nn.Module):
         return panorama_tensor, depth# panorama_tensor:BCHW, depth:HW
 
     def load_camera_poses(self, pano_center_offset=[0,0]):
-        subset_path = f'input/Camera_Trajectory' # initial 6 poses are cubemaps poses
+        subset_path = self.camera_trajectory_dir # initial 6 poses are cubemaps poses
         files = os.listdir(subset_path)
 
         self.scene_depth_max = 4.0228885328450446
@@ -573,52 +582,64 @@ class Pano2RoomPipeline(torch.nn.Module):
 
         self.scene = Scene(traindata, self.gaussians, self.opt)   
         self.train_GS()
-        outfile = self.gaussians.save_ply(os.path.join(self.save_path, '3DGS.ply'))
+        gs_path = os.path.join(self.save_path, '3DGS.ply')
+        self.gaussians.save_ply(gs_path)
 
-        # Eval GS
-        evaldata = {
-            'camera_angle_x': self.cam.fov[0],
-            'W': self.W,
-            'H': self.H,
-            'frames': [],
-        }
+        if self.render_outputs:
+            # Eval GS
+            evaldata = {
+                'camera_angle_x': self.cam.fov[0],
+                'W': self.W,
+                'H': self.H,
+                'frames': [],
+            }
 
-        for i in range(len(self.poses)):
-            gt_img = inpainted_img
+            for i in range(len(self.poses)):
+                gt_img = inpainted_img
 
-            pose_44 = self.poses[i].clone()
-            pose_44 = pose_44.float()
-            pose_44[0:1,:] *= -1
-            pose_44[1:2,:] *= -1
+                pose_44 = self.poses[i].clone()
+                pose_44 = pose_44.float()
+                pose_44[0:1,:] *= -1
+                pose_44[1:2,:] *= -1
 
-            Rw2c = pose_44[:3,:3].cpu().numpy()
-            Tw2c = pose_44[:3,3:].cpu().numpy()
-            yz_reverse = np.array([[1,0,0], [0,-1,0], [0,0,-1]])
+                Rw2c = pose_44[:3,:3].cpu().numpy()
+                Tw2c = pose_44[:3,3:].cpu().numpy()
+                yz_reverse = np.array([[1,0,0], [0,-1,0], [0,0,-1]])
 
-            Rc2w = np.matmul(yz_reverse, Rw2c).T
-            Tc2w = -np.matmul(Rc2w, np.matmul(yz_reverse, Tw2c))
-            Pc2w = np.concatenate((Rc2w, Tc2w), axis=1)
-            Pc2w = np.concatenate((Pc2w, np.array([[0,0,0,1]])), axis=0)                  
+                Rc2w = np.matmul(yz_reverse, Rw2c).T
+                Tc2w = -np.matmul(Rc2w, np.matmul(yz_reverse, Tw2c))
+                Pc2w = np.concatenate((Rc2w, Tc2w), axis=1)
+                Pc2w = np.concatenate((Pc2w, np.array([[0,0,0,1]])), axis=0)                  
 
-            evaldata['frames'].append({
-                'image': functions.tensor_to_pil(gt_img),
-                'transform_matrix': Pc2w.tolist(), 
-                'fovx': focal2fov(256, gt_img.shape[-1]),
-                'mesh_pose': self.poses[i].clone()
-            })
-        from scene.dataset_readers import loadCamerasFromData
-        eval_GS_cams = loadCamerasFromData(evaldata, self.opt.white_background)
-        self.eval_GS(eval_GS_cams)
+                evaldata['frames'].append({
+                    'image': functions.tensor_to_pil(gt_img),
+                    'transform_matrix': Pc2w.tolist(), 
+                    'fovx': focal2fov(256, gt_img.shape[-1]),
+                    'mesh_pose': self.poses[i].clone()
+                })
+            from scene.dataset_readers import loadCamerasFromData
+            eval_GS_cams = loadCamerasFromData(evaldata, self.opt.white_background)
+            self.eval_GS(eval_GS_cams)
+
+        return gs_path
 
 
 def main():
     parser = argparse.ArgumentParser(description="Pano2Room")
     parser.add_argument("--image_path", type=str, help="Path to the input image", default="input/input_panorama.png")
+    parser.add_argument("--save_path", type=str, help="Directory for Pano2Room outputs", default=None)
+    parser.add_argument("--camera_trajectory_dir", type=str, help="Directory of camera pose files", default=None)
+    parser.add_argument("--no_render_outputs", action="store_true", help="Skip GS render/depth video generation")
 
     # Parse the arguments
     args = parser.parse_args()
 
-    pipeline = Pano2RoomPipeline(args.image_path)
+    pipeline = Pano2RoomPipeline(
+        args.image_path,
+        save_path=args.save_path,
+        camera_trajectory_dir=args.camera_trajectory_dir,
+        render_outputs=not args.no_render_outputs,
+    )
     pipeline.run()
 
 if __name__ == "__main__":

@@ -20,6 +20,12 @@ Set the catalog `kind` to the chosen role. In orchestrated runs, `RUNNER_TYPE`
 is injected from that catalog value. For manual runs, set `RUNNER_TYPE` to the
 same value. Do not implement a hybrid runner.
 
+## Repository And Image Naming
+
+Before editing a target model repo, check the repository name. It should start with `SceneGenDepolyBench-`. The GitHub Actions uses the repository name.
+
+If repo name do not fit, stop before making changes and notify the user. Do not silently choose a different image name.
+
 ## Files To Edit
 
 Usually edit or create only:
@@ -231,7 +237,8 @@ Adaptation workflow:
 5. Add `.dockerignore` entries for datasets, outputs, caches, and local weights
    that should not be baked into the image.
 6. Create one catalog YAML in `runner_wrapper/config/runners/`.
-7. Build and smoke test.
+7. Install `.github/workflows/runner-image.yaml` from the template.
+8. Build and smoke test.
 
 Build from the model repo root:
 
