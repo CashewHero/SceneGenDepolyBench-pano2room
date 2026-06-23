@@ -17,12 +17,6 @@ Set the catalog `kind` to the chosen role. In orchestrated runs, `RUNNER_TYPE` i
 
 Before editing, check that the target repo name starts with `SceneGenDeployBench-`. If it does not, stop and notify the user. The image name is derived from the repo name for GHCR.
 
-## Repository And Image Naming
-
-Before editing a target model repo, check the repository name. It should start with `SceneGenDepolyBench-`. The GitHub Actions uses the repository name.
-
-If repo name do not fit, stop before making changes and notify the user. Do not silently choose a different image name.
-
 ## Files To Edit
 
 Usually edit or create only:
