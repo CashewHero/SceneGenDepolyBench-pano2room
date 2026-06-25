@@ -28,17 +28,20 @@ def _safe_role(role: str) -> str:
     return "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in role)
 
 
-def _normalize_sample_data(sample: dict[str, Any]) -> dict[str, str]:
+def _normalize_sample_data(sample: dict[str, Any]) -> dict[str, Any]:
     sample_data = sample.get("data")
     if isinstance(sample_data, dict) and sample_data:
-        normalized: dict[str, str] = {}
-        for data_type, raw_path in sample_data.items():
+        normalized: dict[str, Any] = {}
+        for data_type, raw_value in sample_data.items():
             data_key = str(data_type).strip()
             if not data_key:
                 raise ValueError("sample data type names must be non-empty")
-            if not isinstance(raw_path, str) or not raw_path.strip():
+            if data_key == "camera_pose" and isinstance(raw_value, dict):
+                normalized[data_key] = dict(raw_value)
+                continue
+            if not isinstance(raw_value, str) or not raw_value.strip():
                 raise ValueError(f"sample data path for {data_key} must be a non-empty string")
-            normalized[data_key] = raw_path.strip()
+            normalized[data_key] = raw_value.strip()
         return normalized
 
     normalized = {}
@@ -54,7 +57,7 @@ def _normalize_sample_data(sample: dict[str, Any]) -> dict[str, str]:
 
 
 def _validate_required_data_types(
-    sample_data: dict[str, str],
+    sample_data: dict[str, Any],
     required_data_types: list[str],
     job_id: str,
 ) -> None:
@@ -72,12 +75,14 @@ def _validate_required_data_types(
     raise ValueError(f"sample missing required data types: {', '.join(missing_data_types)}")
 
 
-def _copy_inputs(sample_data: dict[str, str], output_root: Path, *, model_outputs: bool) -> list[dict[str, Any]]:
+def _copy_inputs(sample_data: dict[str, Any], output_root: Path, *, model_outputs: bool) -> list[dict[str, Any]]:
     output_dir = output_root / "output"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     artifacts: list[dict[str, Any]] = []
     for index, (data_type, raw_path) in enumerate(sample_data.items()):
+        if not isinstance(raw_path, str):
+            continue
         src_path = Path(raw_path)
         if not src_path.exists() or not src_path.is_file():
             raise FileNotFoundError(f"input file not found: {src_path}")
