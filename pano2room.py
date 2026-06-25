@@ -51,7 +51,7 @@ class Pano2RoomPipeline(torch.nn.Module):
         super().__init__()
         # renderer setting
         self.image_path = image_path
-        self.camera_trajectory_dir = camera_trajectory_dir or os.getenv("PANO2ROOM_CAMERA_TRAJECTORY_DIR", "input/Camera_Trajectory")
+        self.camera_trajectory_dir = camera_trajectory_dir or "input/Camera_Trajectory"
         self.render_outputs = render_outputs
         self.blur_radius = 0
         self.faces_per_pixel = 8

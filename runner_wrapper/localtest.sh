@@ -20,6 +20,7 @@ RUNNER_TYPE="${RUNNER_TYPE:-generator}"
 RUNNER_VERSION="${RUNNER_VERSION:-0.1.0}"
 RUNNER_ADAPTER="${RUNNER_ADAPTER:-runner_wrapper.adapter:run_job}"
 RUNNER_WEIGHTS_DIR="${RUNNER_WEIGHTS_DIR:-}"
+RUNNER_DOCKER_GPUS="${RUNNER_DOCKER_GPUS:-all}"
 REQUEST_FILE="${RUNNER_REQUEST_FILE:-${SCRIPT_DIR}/examples/${RUNNER_TYPE}_job_request.json}"
 
 usage() {
@@ -43,6 +44,7 @@ Environment:
   RUNNER_REQUEST_FILE=${REQUEST_FILE}
   RUNNER_DATA_DIR=${DATA_DIR}
   RUNNER_WEIGHTS_DIR=${RUNNER_WEIGHTS_DIR}
+  RUNNER_DOCKER_GPUS=${RUNNER_DOCKER_GPUS}
 
 Set RUNNER_WEIGHTS_DIR to the host directory containing the mounted
 Pano2Room weights before running a full smoke test.
@@ -101,8 +103,7 @@ run_container() {
     PANO2ROOM_OMNIDATA_NORMAL_CKPT_PATH \
     PANO2ROOM_SD_MODEL_PATH \
     PANO2ROOM_AUTO_DOWNLOAD_WEIGHTS \
-    PANO2ROOM_SDFT_WEIGHTS_DIR \
-    PANO2ROOM_CAMERA_TRAJECTORY_DIR; do
+    PANO2ROOM_SDFT_WEIGHTS_DIR; do
     if [[ -n "${!env_name:-}" ]]; then
       env_args+=(-e "${env_name}=${!env_name}")
     fi
@@ -110,11 +111,17 @@ run_container() {
 
   local volume_args=(-v "${DATA_DIR}:/data")
   if [[ -n "${RUNNER_WEIGHTS_DIR}" ]]; then
-    volume_args+=(-v "${RUNNER_WEIGHTS_DIR}:/models/pano2room/checkpoints:ro")
+    volume_args+=(-v "${RUNNER_WEIGHTS_DIR}:/models/pano2room/checkpoints")
+  fi
+
+  local gpu_args=()
+  if [[ -n "${RUNNER_DOCKER_GPUS}" && "${RUNNER_DOCKER_GPUS}" != "none" ]]; then
+    gpu_args+=(--gpus "${RUNNER_DOCKER_GPUS}")
   fi
 
   docker run -d \
     --name "${CONTAINER}" \
+    "${gpu_args[@]}" \
     -p "${HOST_PORT}:58090" \
     "${env_args[@]}" \
     "${volume_args[@]}" \

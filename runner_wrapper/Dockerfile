@@ -14,17 +14,25 @@ RUN if [ -f server.py ] && [ -f adapter.py ] && [ ! -f runner_wrapper/server.py 
     fi
 
 ENV PYTHONPATH=/app/model_repo:/app
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends git ffmpeg libgl1 libglib2.0-0 && \
+    apt-get install -y --no-install-recommends git ffmpeg libgl1 libglib2.0-0 ninja-build && \
     rm -rf /var/lib/apt/lists/*
+
+ARG TCNN_CUDA_ARCHITECTURES=75
+ENV TCNN_CUDA_ARCHITECTURES=${TCNN_CUDA_ARCHITECTURES}
+ARG TORCH_CUDA_ARCH_LIST=7.5
+ENV TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST}
 
 ARG INSTALL_REQUIREMENTS=1
 RUN if [ "$INSTALL_REQUIREMENTS" = "1" ] && [ -f requirements_git.txt ]; then \
       pip install --no-cache-dir -r requirements_git.txt; \
     fi
 RUN if [ "$INSTALL_REQUIREMENTS" = "1" ] && [ -f requirements.txt ]; then \
-      pip install --no-cache-dir -r requirements.txt; \
+      grep -vE '^(--extra-index-url|torch[[:space:]]*$|torchvision[[:space:]]*$|triton[[:space:]]*$|xformers[[:space:]]*$)' requirements.txt > /tmp/requirements.txt; \
+      pip install --no-cache-dir --retries 2 --timeout 60 -r /tmp/requirements.txt; \
     fi
 
 ARG INSTALL_EDITABLE=0
@@ -49,6 +57,5 @@ ENV PANO2ROOM_LAMA_CKPT_PATH=/models/pano2room/checkpoints/big-lama.ckpt
 ENV PANO2ROOM_OMNIDATA_DEPTH_CKPT_PATH=/models/pano2room/checkpoints/omnidata_dpt_depth_v2.ckpt
 ENV PANO2ROOM_OMNIDATA_NORMAL_CKPT_PATH=/models/pano2room/checkpoints/omnidata_dpt_normal_v2.ckpt
 ENV PANO2ROOM_AUTO_DOWNLOAD_WEIGHTS=1
-ENV PANO2ROOM_CAMERA_TRAJECTORY_DIR=input/Camera_Trajectory
 
 CMD ["python", "-m", "runner_wrapper.server"]

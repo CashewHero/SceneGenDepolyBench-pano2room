@@ -1,9 +1,12 @@
+## NOTE
+This is the clone of the original [Pano2Room Repo](https://github.com/TrickyGo/Pano2Room), made into a runner for [SceneGenDeployBench](https://github.com/CashewHero/SceneGenDeployBench). 
+
+---
+
 ## Welcome to Pano2Room!
 
 [Pano2Room: Novel View Synthesis from a Single Indoor Panorama (SIGGRAPH Asia 2024)](https://arxiv.org/abs/2408.11413).
 
-## NOTE
-This is the clone of the original [Pano2Room Repo](https://github.com/TrickyGo/Pano2Room). 
 
 ## Overview
 #### In short, Pano2Room converts an input panorama into 3DGS. 

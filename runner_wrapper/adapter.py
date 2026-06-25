@@ -18,6 +18,8 @@ logger = logging.getLogger("runner_wrapper.adapter")
 RUNNER_NAME = "pano2room"
 OUTPUT_FILENAME = "3DGS.ply"
 DEFAULT_CHECKPOINT_DIR = "/models/pano2room/checkpoints"
+DEFAULT_CAMERA_TRAJECTORY_DIR = Path(__file__).resolve().parents[1] / "input" / "Camera_Trajectory"
+CAMERA_TRAJECTORY_DATA_KEYS = ("camera_trajectory", "camera_trajectory_dir")
 
 CHECKPOINT_DEFAULTS = {
     "PANO2ROOM_LAMA_CONFIG_PATH": "big-lama-config.yaml",
@@ -41,7 +43,6 @@ CONFIG_ENV_KEYS = {
     "stable_diffusion_model_path": "PANO2ROOM_SD_MODEL_PATH",
     "sdft_weights_dir": "PANO2ROOM_SDFT_WEIGHTS_DIR",
     "auto_download_weights": "PANO2ROOM_AUTO_DOWNLOAD_WEIGHTS",
-    "camera_trajectory_dir": "PANO2ROOM_CAMERA_TRAJECTORY_DIR",
 }
 
 
@@ -186,6 +187,20 @@ def _validate_local_paths(paths: list[Path]) -> None:
         raise FileNotFoundError("missing Pano2Room weight path(s): " + ", ".join(missing) + hint)
 
 
+def _resolve_camera_trajectory_dir(sample_data: dict[str, str]) -> Path:
+    for data_key in CAMERA_TRAJECTORY_DATA_KEYS:
+        raw_path = sample_data.get(data_key)
+        if raw_path:
+            trajectory_dir = Path(raw_path)
+            if not trajectory_dir.is_dir():
+                raise FileNotFoundError(f"camera trajectory directory not found: {trajectory_dir}")
+            return trajectory_dir
+
+    if not DEFAULT_CAMERA_TRAJECTORY_DIR.is_dir():
+        raise FileNotFoundError(f"default camera trajectory directory not found: {DEFAULT_CAMERA_TRAJECTORY_DIR}")
+    return DEFAULT_CAMERA_TRAJECTORY_DIR
+
+
 def _artifact(path: Path, output_root: Path) -> dict[str, Any]:
     return {
         "artifact_type": "model_output",
@@ -259,10 +274,7 @@ def run_job(job_request: dict[str, Any]) -> dict[str, Any]:
         if not torch.cuda.is_available():
             raise RuntimeError("Pano2Room runner requires CUDA")
 
-        camera_trajectory_dir = (
-            _config_string(config, "camera_trajectory_dir")
-            or os.getenv("PANO2ROOM_CAMERA_TRAJECTORY_DIR", "input/Camera_Trajectory")
-        )
+        camera_trajectory_dir = str(_resolve_camera_trajectory_dir(sample_data))
 
         logger.info(
             event_message(

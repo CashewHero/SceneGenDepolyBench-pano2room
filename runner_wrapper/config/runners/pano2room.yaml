@@ -10,14 +10,15 @@ runners:
     inputs:
       required:
         - image
-      optional: []
+      optional:
+        - camera_trajectory
     scheduling:
       max_batch_size: 1
       max_attempts: 1
     launcher:
       driver: docker
       compat_version: 1
-      image: scenegendeploybench-pano2room:0.1.0
+      image: ghcr.io/cashewhero/scenegendeploybench-pano2room:0.1.0
       endpoint:
         port: 58090
       env:
@@ -27,4 +28,3 @@ runners:
         PANO2ROOM_OMNIDATA_DEPTH_CKPT_PATH: /models/pano2room/checkpoints/omnidata_dpt_depth_v2.ckpt
         PANO2ROOM_OMNIDATA_NORMAL_CKPT_PATH: /models/pano2room/checkpoints/omnidata_dpt_normal_v2.ckpt
         PANO2ROOM_AUTO_DOWNLOAD_WEIGHTS: "1"
-        PANO2ROOM_CAMERA_TRAJECTORY_DIR: input/Camera_Trajectory
